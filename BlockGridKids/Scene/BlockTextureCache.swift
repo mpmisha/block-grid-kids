@@ -57,7 +57,8 @@ final class BlockTextureCache {
             let cgContext = context.cgContext
 
             // Outer body: a darker version of the color forms the bevel edge.
-            let bodyInset = side * 0.03
+            // It fills the whole cell so adjacent blocks in a shape touch.
+            let bodyInset = side * 0.012
             let bodyRect = CGRect(x: bodyInset, y: bodyInset,
                                   width: side - bodyInset * 2,
                                   height: side - bodyInset * 2)
@@ -67,12 +68,12 @@ final class BlockTextureCache {
             bodyPath.fill()
 
             // Raised face, nudged up so the bottom edge reads as a shadow.
-            let faceInset = side * 0.12
+            let faceInset = side * 0.13
             let faceRect = CGRect(x: faceInset,
-                                  y: faceInset * 0.75,
+                                  y: faceInset * 0.70,
                                   width: side - faceInset * 2,
-                                  height: side - faceInset * 1.85)
-            let facePath = UIBezierPath(roundedRect: faceRect, cornerRadius: bodyRadius * 0.75)
+                                  height: side - faceInset * 2.25)
+            let facePath = UIBezierPath(roundedRect: faceRect, cornerRadius: bodyRadius * 0.6)
             cgContext.setFillColor(color.cgColor)
             facePath.fill()
 
@@ -111,7 +112,7 @@ final class BlockTextureCache {
 
         let canvas = CGSize(width: side, height: side)
         let image = UIGraphicsImageRenderer(size: canvas, format: format).image { context in
-            let inset = side * 0.05
+            let inset = side * 0.025
             let rect = CGRect(x: inset, y: inset, width: side - inset * 2, height: side - inset * 2)
             let path = UIBezierPath(roundedRect: rect, cornerRadius: side * Theme.blockCornerRadiusRatio)
             context.cgContext.setFillColor(Theme.emptyCell.cgColor)

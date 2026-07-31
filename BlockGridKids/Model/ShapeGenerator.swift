@@ -24,7 +24,7 @@ struct ShapeGenerator {
     /// whenever any shape at all can still be placed.
     mutating func makeTray(for board: Board) -> [Piece] {
         for _ in 0..<GameConfiguration.maxTraySetAttempts {
-            let candidate = (0..<GameConfiguration.traySize).map { _ in makePiece() }
+            let candidate = (0..<GameConfiguration.traySize).map { _ in makePiece(for: board) }
             if candidate.contains(where: { board.canPlaceAnywhere($0.shape) }) {
                 return candidate
             }
@@ -35,17 +35,17 @@ struct ShapeGenerator {
         if let rescue = ShapeLibrary.rescueShapes.first(where: { board.canPlaceAnywhere($0) }) {
             var pieces = [Piece(shape: rescue, colorIndex: randomColorIndex())]
             while pieces.count < GameConfiguration.traySize {
-                pieces.append(makePiece())
+                pieces.append(makePiece(for: board))
             }
             return pieces
         }
 
         // The board genuinely has no room left; the engine will detect game over.
-        return (0..<GameConfiguration.traySize).map { _ in makePiece() }
+        return (0..<GameConfiguration.traySize).map { _ in makePiece(for: board) }
     }
 
-    mutating func makePiece() -> Piece {
-        Piece(shape: randomShape(), colorIndex: randomColorIndex())
+    mutating func makePiece(for board: Board) -> Piece {
+        Piece(shape: randomShape(boardSize: board.size), colorIndex: randomColorIndex())
     }
 
     // MARK: - Randomness
@@ -54,8 +54,8 @@ struct ShapeGenerator {
         Int.random(in: 0..<GameConfiguration.colorCount, using: &randomNumberGenerator)
     }
 
-    private mutating func randomShape() -> ShapeTemplate {
-        let shapes = ShapeLibrary.all
+    private mutating func randomShape(boardSize: Int) -> ShapeTemplate {
+        let shapes = ShapeLibrary.shapes(forBoardSize: boardSize)
         let totalWeight = shapes.reduce(0) { $0 + $1.weight }
         guard totalWeight > 0 else { return shapes[0] }
 

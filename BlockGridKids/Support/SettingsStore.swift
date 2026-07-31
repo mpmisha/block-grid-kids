@@ -1,7 +1,7 @@
 import Foundation
 
-/// The two player-facing toggles. Deliberately tiny: this game has no other
-/// configuration, no accounts and nothing to sync.
+/// The handful of player-facing preferences. Deliberately tiny: this game has
+/// no accounts and nothing to sync.
 final class SettingsStore {
 
     static let shared = SettingsStore()
@@ -9,6 +9,7 @@ final class SettingsStore {
     private enum Key {
         static let sound = "soundEnabled"
         static let haptics = "hapticsEnabled"
+        static let boardSize = "boardSize"
     }
 
     private let defaults: UserDefaults
@@ -31,6 +32,19 @@ final class SettingsStore {
     var areHapticsEnabled: Bool {
         get { defaults.bool(forKey: Key.haptics) }
         set { defaults.set(newValue, forKey: Key.haptics) }
+    }
+
+    /// Side length of the playfield. Falls back to the default whenever the
+    /// stored value is missing or is not one of the offered sizes.
+    var boardSize: Int {
+        get {
+            let stored = defaults.integer(forKey: Key.boardSize)
+            return Board.availableSizes.contains(stored) ? stored : Board.defaultSize
+        }
+        set {
+            guard Board.availableSizes.contains(newValue) else { return }
+            defaults.set(newValue, forKey: Key.boardSize)
+        }
     }
 }
 

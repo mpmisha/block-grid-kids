@@ -44,6 +44,8 @@ enum Theme {
     static let primaryText = UIColor.white
     static let secondaryText = UIColor(white: 1.0, alpha: 0.75)
     static let crownGold = UIColor(red: 1.0, green: 0.80, blue: 0.24, alpha: 1)
+    /// Colour blocks drain to during the game-over sweep.
+    static let gameOverBlock = UIColor(red: 0.36, green: 0.38, blue: 0.50, alpha: 1)
 
     static let buttonPrimary = UIColor(red: 0.34, green: 0.78, blue: 0.44, alpha: 1)
     static let buttonSecondary = UIColor(red: 0.36, green: 0.42, blue: 0.68, alpha: 1)
@@ -54,7 +56,9 @@ enum Theme {
     // MARK: - Metrics
 
     static let boardCornerRadiusRatio: CGFloat = 0.14
-    static let blockCornerRadiusRatio: CGFloat = 0.22
+    /// Blocks are drawn edge to edge so neighbours in a shape read as one
+    /// solid piece; only the bevel and this small radius separate them.
+    static let blockCornerRadiusRatio: CGFloat = 0.16
     static let blockInsetRatio: CGFloat = 0.06
 
     // MARK: - Fonts

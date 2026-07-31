@@ -74,6 +74,24 @@ final class PieceNode: SKNode {
         ]))
     }
 
+    /// A longer, sadder wobble for the pieces still stuck in the tray when the
+    /// game ends.
+    func playGameOverShake() {
+        removeAllActions()
+        let wobble = SKAction.sequence([
+            .rotate(toAngle: -0.10, duration: 0.10),
+            .rotate(toAngle: 0.10, duration: 0.14),
+            .rotate(toAngle: 0, duration: 0.10)
+        ])
+        run(.sequence([
+            .repeat(wobble, count: 2),
+            .group([
+                .fadeAlpha(to: 0.45, duration: 0.30),
+                .scale(by: 0.86, duration: 0.30)
+            ])
+        ]))
+    }
+
     func playRejectShake() {
         run(.sequence([
             .moveBy(x: -6, y: 0, duration: 0.045),

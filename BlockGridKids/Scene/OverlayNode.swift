@@ -12,6 +12,8 @@ class OverlayNode: SKNode {
     var interactiveButtons: [ButtonNode] { [] }
     /// Toggles the scene should hit-test while this overlay is showing.
     var interactiveToggles: [ToggleRowNode] { [] }
+    /// Segmented rows the scene should hit-test while this overlay is showing.
+    var interactiveSegments: [SegmentedRowNode] { [] }
     /// When true, tapping the scrim dismisses the overlay.
     var isDismissableByScrim: Bool { true }
 

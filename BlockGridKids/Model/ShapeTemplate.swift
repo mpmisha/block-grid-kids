@@ -125,6 +125,16 @@ enum ShapeLibrary {
         return shapes
     }()
 
+    /// The shapes worth offering on a board of `size` cells per side.
+    ///
+    /// The small board fills up fast, so anything wider than three cells or
+    /// covering more than four is dropped; otherwise a single unlucky 3x3
+    /// would end the game almost immediately.
+    static func shapes(forBoardSize size: Int) -> [ShapeTemplate] {
+        guard size < Board.defaultSize else { return all }
+        return all.filter { $0.width <= 3 && $0.height <= 3 && $0.cellCount <= 4 }
+    }
+
     /// The gentlest shapes, used as a fallback when nothing else fits.
     static let rescueShapes: [ShapeTemplate] = all
         .filter { $0.cellCount <= 2 }

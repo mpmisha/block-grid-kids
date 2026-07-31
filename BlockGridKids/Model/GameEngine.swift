@@ -24,27 +24,58 @@ struct GameSnapshot: Codable, Equatable {
     var score: Int
     var streak: Int
     var isGameOver: Bool
+    /// The best score as it was when this run started. Persisted so the frozen
+    /// HUD value survives the app being closed mid-game.
+    var baselineBestScore: Int?
 }
 
 /// Owns the board, the tray, the score and the game-over rule.
 final class GameEngine {
 
-    private(set) var board = Board()
+    private(set) var board: Board
     private(set) var tray: [Piece?] = []
     private(set) var score = 0
     private(set) var streak = 0
     private(set) var isGameOver = false
+
+    /// The all-time best actually stored on the device.
     private(set) var bestScore = 0
+    /// The best score as it stood when the current run began. The HUD shows
+    /// this for the whole run so the player can watch themselves close in on
+    /// the target instead of the target moving with them.
+    private(set) var baselineBestScore = 0
+
+    /// The number to display. It only catches up with `bestScore` once the run
+    /// is over.
+    var visibleBestScore: Int { isGameOver ? bestScore : baselineBestScore }
 
     private var generator: ShapeGenerator
     private let scoreStore: HighScoreStoring
 
-    init(scoreStore: HighScoreStoring = HighScoreStore(),
+    init(boardSize: Int = Board.defaultSize,
+         scoreStore: HighScoreStoring = HighScoreStore(),
          generator: ShapeGenerator = ShapeGenerator()) {
         self.scoreStore = scoreStore
         self.generator = generator
-        self.bestScore = scoreStore.bestScore
+        self.board = Board(size: boardSize)
+        self.bestScore = scoreStore.bestScore(forBoardSize: self.board.size)
+        self.baselineBestScore = self.bestScore
         startNewGame()
+    }
+
+    /// Side length of the current board. Each size keeps its own best score,
+    /// because a 5x5 run is not comparable to an 8x8 one.
+    var boardSize: Int { board.size }
+
+    /// Switches to a different board size and starts a fresh game on it.
+    /// Does nothing when the requested size is already in play.
+    @discardableResult
+    func changeBoardSize(to newSize: Int) -> Bool {
+        guard Board.availableSizes.contains(newSize), newSize != board.size else { return false }
+        board = Board(size: newSize)
+        bestScore = scoreStore.bestScore(forBoardSize: newSize)
+        startNewGame()
+        return true
     }
 
     // MARK: - Lifecycle
@@ -54,11 +85,19 @@ final class GameEngine {
         score = 0
         streak = 0
         isGameOver = false
+        baselineBestScore = bestScore
         refillTray()
     }
 
     private func refillTray() {
         tray = generator.makeTray(for: board)
+    }
+
+    /// Positions that would be cleared by dropping the tray piece at `index`
+    /// on `origin`. Empty when the move is illegal or clears nothing.
+    func linesCompleted(byPieceAt index: Int, origin: GridPosition) -> (rows: [Int], columns: [Int]) {
+        guard let piece = piece(at: index) else { return ([], []) }
+        return board.linesCompletedIfPlaced(piece.shape, at: origin)
     }
 
     // MARK: - Queries
@@ -121,16 +160,18 @@ final class GameEngine {
             result.didRefillTray = true
         }
 
+        // The stored best is kept up to date so an interrupted run is never
+        // lost, but it is only *revealed* when the run ends.
         if score > bestScore {
             bestScore = score
-            scoreStore.bestScore = score
-            result.isNewBestScore = true
+            scoreStore.setBestScore(score, forBoardSize: board.size)
         }
 
         if !hasAvailableMove() {
             isGameOver = true
         }
         result.isGameOver = isGameOver
+        result.isNewBestScore = isGameOver && score > baselineBestScore
 
         return result
     }
@@ -139,13 +180,21 @@ final class GameEngine {
 
     func resetBestScore() {
         bestScore = 0
-        scoreStore.bestScore = 0
+        baselineBestScore = 0
+        scoreStore.setBestScore(0, forBoardSize: board.size)
     }
 
     // MARK: - Persistence
 
     func makeSnapshot() -> GameSnapshot {
-        GameSnapshot(board: board, tray: tray, score: score, streak: streak, isGameOver: isGameOver)
+        GameSnapshot(
+            board: board,
+            tray: tray,
+            score: score,
+            streak: streak,
+            isGameOver: isGameOver,
+            baselineBestScore: baselineBestScore
+        )
     }
 
     /// Restores a saved game. Ignores snapshots that are finished or empty so a
@@ -153,6 +202,7 @@ final class GameEngine {
     @discardableResult
     func restore(from snapshot: GameSnapshot) -> Bool {
         guard !snapshot.isGameOver else { return false }
+        guard snapshot.board.size == board.size else { return false }
         guard snapshot.tray.count == GameConfiguration.traySize else { return false }
         guard snapshot.board.filledCellCount > 0 || snapshot.score > 0 else { return false }
 
@@ -161,6 +211,9 @@ final class GameEngine {
         score = max(0, snapshot.score)
         streak = max(0, snapshot.streak)
         isGameOver = false
+        // Keep the frozen target from the interrupted run, clamped so a stale
+        // save can never show a target above the real stored best.
+        baselineBestScore = min(bestScore, max(0, snapshot.baselineBestScore ?? bestScore))
 
         if remainingPieces.isEmpty {
             refillTray()

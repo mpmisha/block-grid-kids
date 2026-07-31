@@ -32,6 +32,24 @@ final class BlockNode: SKSpriteNode {
         ]))
     }
 
+    /// Drains the block to a flat grey and lets it sag, as part of the
+    /// board-wide game-over sweep.
+    func playGameOverFade(delay: TimeInterval) {
+        removeAllActions()
+        run(.sequence([
+            .wait(forDuration: delay),
+            .group([
+                .colorize(with: Theme.gameOverBlock, colorBlendFactor: 0.92, duration: 0.26),
+                .fadeAlpha(to: 0.55, duration: 0.26),
+                .sequence([
+                    .scale(to: 1.12, duration: 0.10),
+                    .scale(to: 0.88, duration: 0.16)
+                ]),
+                .moveBy(x: 0, y: -size.height * 0.08, duration: 0.26)
+            ])
+        ]))
+    }
+
     /// The pop used when the block's row or column is cleared.
     func playClearAnimation(delay: TimeInterval, completion: @escaping () -> Void) {
         run(.sequence([

@@ -1,11 +1,12 @@
 import SpriteKit
 
-/// The only menu in the game: two toggles, a new game, and a guarded reset of
-/// the best score.
+/// The only menu in the game: the board size, two toggles, a new game, and a
+/// guarded reset of the best score.
 final class SettingsPanelNode: OverlayNode {
 
     private var soundToggle: ToggleRowNode!
     private var hapticsToggle: ToggleRowNode!
+    private var sizeRow: SegmentedRowNode!
     private var newGameButton: ButtonNode!
     private var resetButton: ButtonNode!
     private var closeButton: ButtonNode!
@@ -16,29 +17,46 @@ final class SettingsPanelNode: OverlayNode {
     private let onNewGame: () -> Void
     private let onResetBest: () -> Void
     private let onClose: () -> Void
+    private let onBoardSizeChange: (Int) -> Void
 
     init(sceneSize: CGSize,
          bestScore: Int,
+         boardSize: Int,
+         onBoardSizeChange: @escaping (Int) -> Void,
          onNewGame: @escaping () -> Void,
          onResetBest: @escaping () -> Void,
          onClose: @escaping () -> Void) {
         self.onNewGame = onNewGame
         self.onResetBest = onResetBest
         self.onClose = onClose
+        self.onBoardSizeChange = onBoardSizeChange
 
         let width = min(330, sceneSize.width - 48)
-        super.init(sceneSize: sceneSize, panelSize: CGSize(width: width, height: 396))
+        super.init(sceneSize: sceneSize, panelSize: CGSize(width: width, height: 452))
 
         let contentWidth = width - 56
         let buttonSize = CGSize(width: contentWidth, height: 52)
 
         let title = makeTitleLabel("Settings")
-        title.position = CGPoint(x: 0, y: 158)
+        title.position = CGPoint(x: 0, y: 186)
         card.addChild(title)
 
         bestLabel = makeBodyLabel("Best score: \(bestScore)", fontSize: 17, color: Theme.crownGold)
-        bestLabel.position = CGPoint(x: 0, y: 124)
+        bestLabel.position = CGPoint(x: 0, y: 152)
         card.addChild(bestLabel)
+
+        sizeRow = SegmentedRowNode(
+            title: "Board",
+            values: Board.availableSizes,
+            titles: Board.availableSizes.map { "\($0)x\($0)" },
+            selected: boardSize,
+            width: contentWidth
+        ) { [weak self] size in
+            self?.onBoardSizeChange(size)
+        }
+        sizeRow.position = CGPoint(x: 0, y: 104)
+        sizeRow.zPosition = 2
+        card.addChild(sizeRow)
 
         soundToggle = ToggleRowNode(
             title: "Sound",
@@ -47,7 +65,7 @@ final class SettingsPanelNode: OverlayNode {
         ) { isOn in
             SettingsStore.shared.isSoundEnabled = isOn
         }
-        soundToggle.position = CGPoint(x: 0, y: 72)
+        soundToggle.position = CGPoint(x: 0, y: 52)
         soundToggle.zPosition = 2
         card.addChild(soundToggle)
 
@@ -58,30 +76,40 @@ final class SettingsPanelNode: OverlayNode {
         ) { isOn in
             SettingsStore.shared.areHapticsEnabled = isOn
         }
-        hapticsToggle.position = CGPoint(x: 0, y: 20)
+        hapticsToggle.position = CGPoint(x: 0, y: 4)
         hapticsToggle.zPosition = 2
         card.addChild(hapticsToggle)
 
         newGameButton = ButtonNode(title: "New Game", size: buttonSize, style: .primary) { [weak self] in
             self?.onNewGame()
         }
-        newGameButton.position = CGPoint(x: 0, y: -46)
+        newGameButton.position = CGPoint(x: 0, y: -60)
         newGameButton.zPosition = 2
         card.addChild(newGameButton)
 
         resetButton = ButtonNode(title: "Reset Best Score", size: buttonSize, style: .danger) { [weak self] in
             self?.handleResetTapped()
         }
-        resetButton.position = CGPoint(x: 0, y: -108)
+        resetButton.position = CGPoint(x: 0, y: -122)
         resetButton.zPosition = 2
         card.addChild(resetButton)
 
         closeButton = ButtonNode(title: "Close", size: buttonSize, style: .secondary) { [weak self] in
             self?.onClose()
         }
-        closeButton.position = CGPoint(x: 0, y: -170)
+        closeButton.position = CGPoint(x: 0, y: -184)
         closeButton.zPosition = 2
         card.addChild(closeButton)
+    }
+
+    /// Called after the scene has switched board size, so the panel can show
+    /// the best score that belongs to the newly selected board.
+    func updateBestScore(_ value: Int) {
+        bestLabel.text = "Best score: \(value)"
+    }
+
+    override var interactiveSegments: [SegmentedRowNode] {
+        [sizeRow]
     }
 
     @available(*, unavailable)
@@ -123,7 +151,7 @@ final class SettingsPanelNode: OverlayNode {
 
     private func showResetConfirmation() {
         let toast = makeBodyLabel("Best score cleared", fontSize: 16, color: Theme.primaryText)
-        toast.position = CGPoint(x: 0, y: 100)
+        toast.position = CGPoint(x: 0, y: 128)
         card.addChild(toast)
         toast.run(.sequence([
             .wait(forDuration: 1.3),

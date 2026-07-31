@@ -3,9 +3,10 @@ import XCTest
 
 final class GameEngineTests: XCTestCase {
 
-    private func makeEngine(bestScore: Int = 0) -> (GameEngine, InMemoryHighScoreStore) {
-        let store = InMemoryHighScoreStore(bestScore: bestScore)
-        return (GameEngine(scoreStore: store), store)
+    private func makeEngine(bestScore: Int = 0,
+                            boardSize: Int = Board.defaultSize) -> (GameEngine, InMemoryHighScoreStore) {
+        let store = InMemoryHighScoreStore(bestScore: bestScore, boardSize: boardSize)
+        return (GameEngine(boardSize: boardSize, scoreStore: store), store)
     }
 
     func testNewGameStartsEmptyWithAFullTray() {
@@ -69,10 +70,27 @@ final class GameEngineTests: XCTestCase {
             return XCTFail("Expected a placeable piece")
         }
 
-        let result = engine.place(pieceAt: 0, origin: origin)
-        XCTAssertEqual(result?.isNewBestScore, true)
-        XCTAssertEqual(store.bestScore, engine.score)
+        engine.place(pieceAt: 0, origin: origin)
+        XCTAssertEqual(store.bestScore(forBoardSize: engine.boardSize), engine.score)
         XCTAssertEqual(engine.bestScore, engine.score)
+    }
+
+    /// The HUD target must not move while a run is in progress, otherwise the
+    /// player can never see how far past their old best they got.
+    func testVisibleBestScoreStaysFrozenUntilTheGameEnds() {
+        let (engine, _) = makeEngine(bestScore: 3)
+        XCTAssertEqual(engine.visibleBestScore, 3)
+
+        guard let piece = engine.piece(at: 0),
+              let origin = engine.board.firstValidOrigin(for: piece.shape) else {
+            return XCTFail("Expected a placeable piece")
+        }
+        let result = engine.place(pieceAt: 0, origin: origin)
+
+        XCTAssertGreaterThan(engine.score, 0)
+        XCTAssertEqual(engine.bestScore, max(3, engine.score))
+        XCTAssertEqual(engine.visibleBestScore, 3, "The displayed best must not move mid-game")
+        XCTAssertEqual(result?.isNewBestScore, false, "A new best is only announced at game over")
     }
 
     func testExistingBestScoreIsLoadedAndNotBeatenTooEarly() {
@@ -92,7 +110,37 @@ final class GameEngineTests: XCTestCase {
         let (engine, store) = makeEngine(bestScore: 4_242)
         engine.resetBestScore()
         XCTAssertEqual(engine.bestScore, 0)
-        XCTAssertEqual(store.bestScore, 0)
+        XCTAssertEqual(engine.visibleBestScore, 0)
+        XCTAssertEqual(store.bestScore(forBoardSize: engine.boardSize), 0)
+    }
+
+    func testChangingBoardSizeStartsAFreshGameAndSwapsTheBestScore() {
+        let (engine, store) = makeEngine(bestScore: 500)
+        store.setBestScore(120, forBoardSize: 5)
+
+        if let piece = engine.piece(at: 0),
+           let origin = engine.board.firstValidOrigin(for: piece.shape) {
+            engine.place(pieceAt: 0, origin: origin)
+        }
+
+        XCTAssertTrue(engine.changeBoardSize(to: 5))
+        XCTAssertEqual(engine.boardSize, 5)
+        XCTAssertEqual(engine.board.size, 5)
+        XCTAssertEqual(engine.score, 0)
+        XCTAssertTrue(engine.board.isCompletelyEmpty)
+        XCTAssertEqual(engine.bestScore, 120, "Each board size keeps its own best score")
+        XCTAssertEqual(engine.remainingPieces.count, GameConfiguration.traySize)
+
+        XCTAssertFalse(engine.changeBoardSize(to: 5), "Re-selecting the current size is a no-op")
+    }
+
+    func testSnapshotFromAnotherBoardSizeIsRejected() {
+        let (small, _) = makeEngine(boardSize: 5)
+        let snapshot = small.makeSnapshot()
+
+        let (large, _) = makeEngine()
+        XCTAssertFalse(large.restore(from: snapshot))
+        XCTAssertEqual(large.board.size, Board.defaultSize)
     }
 
     func testStartNewGameClearsEverythingButTheBestScore() {

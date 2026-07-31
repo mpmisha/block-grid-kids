@@ -6,7 +6,7 @@ final class GameScene: SKScene {
 
     // MARK: - Model
 
-    private let engine = GameEngine()
+    private let engine = GameEngine(boardSize: SettingsStore.shared.boardSize)
     private let stateStore = GameStateStore()
 
     // MARK: - Nodes
@@ -30,11 +30,15 @@ final class GameScene: SKScene {
         let pieceNode: PieceNode
         let trayIndex: Int
         var validOrigin: GridPosition?
+        /// Whether the current hover would clear at least one line. Tracked so
+        /// the hint haptic only fires when the answer changes.
+        var isPreviewingClear = false
     }
 
     private var trayPieceNodes: [Int: PieceNode] = [:]
     private var trayPieceScales: [Int: CGFloat] = [:]
     private var drag: DragState?
+    private var isPresentingGameOver = false
     private var pressedButton: ButtonNode?
     private var activeOverlay: OverlayNode?
 
@@ -110,16 +114,17 @@ final class GameScene: SKScene {
         let horizontalPadding: CGFloat = 16
 
         // The tray band is 3 cells tall, so the vertical budget is divided by
-        // 8 board rows plus 3 tray rows.
+        // the board's rows plus 3 tray rows.
+        let boardSizeInCells = engine.board.size
         let boardMaxWidth = size.width - horizontalPadding * 2
         let verticalBudget = size.height
             - insets.top - insets.bottom
             - hudHeight - gapTop - gapBetweenBoardAndTray - gapBottom
         let trayRowUnits: CGFloat = 3.0
 
-        cellSide = max(18, min(boardMaxWidth / CGFloat(Board.size),
-                               verticalBudget / (CGFloat(Board.size) + trayRowUnits)))
-        let boardSide = cellSide * CGFloat(Board.size)
+        cellSide = max(18, min(boardMaxWidth / CGFloat(boardSizeInCells),
+                               verticalBudget / (CGFloat(boardSizeInCells) + trayRowUnits)))
+        let boardSide = cellSide * CGFloat(boardSizeInCells)
         let trayHeight = cellSide * trayRowUnits
 
         BlockTextureCache.shared.prepare(cellSide: cellSide)
@@ -138,14 +143,13 @@ final class GameScene: SKScene {
         hud.position = CGPoint(x: size.width / 2, y: size.height - insets.top - hudHeight / 2)
 
         if boardNode == nil {
-            boardNode = BoardNode(cellSide: cellSide)
+            boardNode = BoardNode(cellSide: cellSide, boardSize: boardSizeInCells)
             boardNode.zPosition = Theme.Layer.board
             addChild(boardNode)
-            boardNode.synchronize(with: engine.board)
         } else {
-            boardNode.updateCellSide(cellSide)
-            boardNode.synchronize(with: engine.board)
+            boardNode.updateGeometry(cellSide: cellSide, boardSize: boardSizeInCells)
         }
+        boardNode.synchronize(with: engine.board)
         boardNode.position = CGPoint(x: size.width / 2, y: boardTop - boardSide / 2)
 
         let trayCenterY = boardTop - boardSide - gapBetweenBoardAndTray - trayHeight / 2
@@ -157,12 +161,12 @@ final class GameScene: SKScene {
         }
 
         hud.setScore(engine.score, animated: false)
-        hud.setBestScore(engine.bestScore)
+        hud.setBestScore(engine.visibleBestScore)
 
         rebuildTray(animated: false)
 
         if engine.isGameOver && activeOverlay == nil {
-            presentGameOver(isNewBest: false)
+            presentGameOver(isNewBest: false, animateBoard: false)
         }
     }
 
@@ -198,7 +202,7 @@ final class GameScene: SKScene {
 
     /// Scales the piece so it fits comfortably inside its tray slot.
     private func trayScale(for node: PieceNode) -> CGFloat {
-        let maxWidth = traySlotSize.width * 0.90
+        let maxWidth = traySlotSize.width * 0.86
         let maxHeight = traySlotSize.height * 0.86
         let widthScale = maxWidth / max(1, node.contentSize.width)
         let heightScale = maxHeight / max(1, node.contentSize.height)
@@ -276,6 +280,14 @@ final class GameScene: SKScene {
             return
         }
 
+        if let segment = pendingSegment {
+            pendingSegment = nil
+            if let value = segment.value(at: location) {
+                segment.select(value, notify: true)
+            }
+            return
+        }
+
         if let toggle = pendingToggle {
             pendingToggle = nil
             if toggle.containsTouch(location) {
@@ -292,14 +304,20 @@ final class GameScene: SKScene {
         pressedButton?.setPressed(false)
         pressedButton = nil
         pendingToggle = nil
+        pendingSegment = nil
         cancelDrag(returnPiece: true)
     }
 
     // MARK: - Overlay touches
 
     private var pendingToggle: ToggleRowNode?
+    private var pendingSegment: SegmentedRowNode?
 
     private func handleOverlayTouchBegan(overlay: OverlayNode, at location: CGPoint) {
+        for segment in overlay.interactiveSegments where segment.containsTouch(location) {
+            pendingSegment = segment
+            return
+        }
         for toggle in overlay.interactiveToggles where toggle.containsTouch(location) {
             pendingToggle = toggle
             return
@@ -354,9 +372,21 @@ final class GameScene: SKScene {
             state.validOrigin = origin
             let positions = engine.board.positions(for: node.piece.shape, at: origin)
             boardNode.showGhost(at: positions, colorIndex: node.piece.colorIndex)
+
+            // Preview which lines this drop would clear, so the player can see
+            // the reward before committing to the move.
+            let lines = engine.linesCompleted(byPieceAt: state.trayIndex, origin: origin)
+            let willClear = !lines.rows.isEmpty || !lines.columns.isEmpty
+            boardNode.showClearHint(rows: lines.rows, columns: lines.columns)
+            if willClear && !state.isPreviewingClear {
+                Haptics.pickUp()
+            }
+            state.isPreviewingClear = willClear
         } else {
             state.validOrigin = nil
+            state.isPreviewingClear = false
             boardNode.hideGhost()
+            boardNode.hideClearHint()
         }
         drag = state
     }
@@ -364,6 +394,7 @@ final class GameScene: SKScene {
     private func finishDrag(at location: CGPoint) {
         guard let state = drag else { return }
         boardNode.hideGhost()
+        boardNode.hideClearHint()
 
         if let origin = state.validOrigin {
             drag = nil
@@ -380,6 +411,7 @@ final class GameScene: SKScene {
         guard let state = drag else { return }
         drag = nil
         boardNode.hideGhost()
+        boardNode.hideClearHint()
         if returnPiece {
             returnPieceToTray(state.pieceNode, trayIndex: state.trayIndex, shake: false)
         } else {
@@ -461,7 +493,7 @@ final class GameScene: SKScene {
             run(.sequence([
                 .wait(forDuration: result.didClearLines ? 0.85 : 0.55),
                 .run { [weak self] in
-                    self?.presentGameOver(isNewBest: result.isNewBestScore)
+                    self?.presentGameOver(isNewBest: result.isNewBestScore, animateBoard: true)
                 }
             ]))
         }
@@ -509,9 +541,16 @@ final class GameScene: SKScene {
         guard activeOverlay == nil else { return }
         cancelDrag(returnPiece: true)
 
-        let panel = SettingsPanelNode(
+        var panel: SettingsPanelNode!
+        panel = SettingsPanelNode(
             sceneSize: size,
-            bestScore: engine.bestScore,
+            bestScore: engine.visibleBestScore,
+            boardSize: engine.boardSize,
+            onBoardSizeChange: { [weak self] newSize in
+                guard let self else { return }
+                self.changeBoardSize(to: newSize)
+                panel?.updateBestScore(self.engine.visibleBestScore)
+            },
             onNewGame: { [weak self] in
                 self?.dismissOverlay()
                 self?.startNewGame()
@@ -519,7 +558,7 @@ final class GameScene: SKScene {
             onResetBest: { [weak self] in
                 guard let self else { return }
                 self.engine.resetBestScore()
-                self.hud.setBestScore(self.engine.bestScore)
+                self.hud.setBestScore(self.engine.visibleBestScore)
             },
             onClose: { [weak self] in
                 self?.dismissOverlay()
@@ -528,22 +567,43 @@ final class GameScene: SKScene {
         showOverlay(panel)
     }
 
-    private func presentGameOver(isNewBest: Bool) {
-        guard activeOverlay == nil else { return }
+    /// Ends the run. When `animateBoard` is true the board first plays its
+    /// drain-and-sag sweep and the leftover tray pieces shake, so the player
+    /// sees *why* the game stopped before the panel covers everything up.
+    private func presentGameOver(isNewBest: Bool, animateBoard: Bool) {
+        guard activeOverlay == nil, !isPresentingGameOver else { return }
+        isPresentingGameOver = true
         Haptics.gameOver()
         SoundPlayer.shared.play(.gameOver)
         stateStore.clear()
 
-        let panel = GameOverPanelNode(
-            sceneSize: size,
-            score: engine.score,
-            bestScore: engine.bestScore,
-            isNewBest: isNewBest
-        ) { [weak self] in
-            self?.dismissOverlay()
-            self?.startNewGame()
+        let showPanel = { [weak self] in
+            guard let self else { return }
+            self.isPresentingGameOver = false
+            guard self.activeOverlay == nil else { return }
+
+            let panel = GameOverPanelNode(
+                sceneSize: self.size,
+                score: self.engine.score,
+                bestScore: self.engine.bestScore,
+                isNewBest: isNewBest
+            ) { [weak self] in
+                self?.dismissOverlay()
+                self?.startNewGame()
+            }
+            self.showOverlay(panel)
         }
-        showOverlay(panel)
+
+        guard animateBoard else {
+            showPanel()
+            return
+        }
+
+        for node in trayPieceNodes.values {
+            node.playGameOverShake()
+        }
+        Effects.praise("No Moves Left", at: CGPoint(x: size.width / 2, y: boardNode.position.y), in: effectLayer)
+        boardNode.playGameOverSweep(completion: showPanel)
     }
 
     private func showOverlay(_ overlay: OverlayNode) {
@@ -557,6 +617,7 @@ final class GameScene: SKScene {
         activeOverlay = nil
         pressedButton = nil
         pendingToggle = nil
+        pendingSegment = nil
         overlay.dismiss()
     }
 
@@ -565,10 +626,25 @@ final class GameScene: SKScene {
     private func startNewGame() {
         engine.startNewGame()
         stateStore.clear()
+        isPresentingGameOver = false
+        boardNode.cancelGameOverSweep()
         boardNode.removeAllBlocks()
         boardNode.hideGhost()
+        boardNode.hideClearHint()
         hud.setScore(0, animated: false)
-        hud.setBestScore(engine.bestScore)
+        hud.setBestScore(engine.visibleBestScore)
+        rebuildTray(animated: true)
+    }
+
+    /// Switches the playfield between the offered sizes. The current run cannot
+    /// survive the change, so this always starts a fresh game.
+    private func changeBoardSize(to newSize: Int) {
+        guard engine.changeBoardSize(to: newSize) else { return }
+        SettingsStore.shared.boardSize = newSize
+        stateStore.clear()
+        isPresentingGameOver = false
+        boardNode.cancelGameOverSweep()
+        performLayout(force: true)
         rebuildTray(animated: true)
     }
 

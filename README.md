@@ -23,6 +23,9 @@ exactly where you were.
 
 The ⚙︎ button in the top-right corner opens the only menu in the app:
 
+- **Board** size: `8x8` (the standard game) or `5x5` (shorter, easier rounds for
+  a smaller player). Each size keeps its own best score, and switching starts a
+  fresh game.
 - **Sound** on/off
 - **Vibration** on/off
 - **New Game**
@@ -35,8 +38,9 @@ There is nothing to disclose, which is the point:
 - No network code at all — no `URLSession`, no web views, no sockets.
 - No analytics, no crash reporting, no ad SDKs, no third-party dependencies.
 - No permissions requested (no camera, mic, location, contacts, tracking).
-- The only stored data is the best score and the two toggles, kept locally in
-  `UserDefaults`. Deleting the app deletes them.
+- The only stored data is the best scores, the board size, the two toggles and
+  the in-progress game, all kept locally in `UserDefaults`. Deleting the app
+  deletes them.
 
 ## Install it on your iPhone
 
