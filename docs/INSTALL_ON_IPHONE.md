@@ -66,14 +66,24 @@ That Personal Team is what lets you sign apps for free.
 
 ---
 
-## 4. Enable Developer Mode on the iPhone (one time)
+## 4. Pair the iPhone and enable Developer Mode (one time)
 
 1. Connect the iPhone to the Mac with the USB cable.
 2. On the iPhone, tap **Trust This Computer** and enter your passcode.
-3. On the iPhone: **Settings → Privacy & Security → Developer Mode → On**.
+3. In Xcode open **Window → Devices and Simulators** (`⇧⌘2`) and confirm your
+   iPhone is listed without an "unpaired" note. If it says unpaired, unlock the
+   phone and answer the pairing prompt that appears on it.
+
+   > This step matters more than it looks. Until the phone is paired, your
+   > Personal Team has **no registered devices**, so Signing & Capabilities
+   > shows *"Your team has no devices from which to generate a provisioning
+   > profile"* and *"No profiles for '...' were found"*. Both warnings clear on
+   > their own once the device is paired and selected as the run destination.
+
+4. On the iPhone: **Settings → Privacy & Security → Developer Mode → On**.
    - If **Developer Mode** is not in the list yet, it appears after Xcode has
      tried to install to the device once. Do step 5 first, then come back here.
-4. The phone restarts. Unlock it and confirm **Turn On**.
+5. The phone restarts. Unlock it and confirm **Turn On**.
 
 ---
 
@@ -137,6 +147,11 @@ use case — you still never need to publish anything.
 **"Failed to register bundle identifier"**
 Another developer already owns that bundle ID. Change it (step 3.5) to something
 unique like `com.<yourname>.blockgrid`.
+
+**"Your team has no devices from which to generate a provisioning profile"**
+The iPhone is not paired yet, or a *simulator* is selected as the run
+destination. Pair the phone (step 4), then pick it under **iOS Device** in the
+destination menu. The warning clears once Xcode registers the device.
 
 **"Unable to install — device is locked"**
 Unlock the iPhone and keep it unlocked while Xcode installs.
