@@ -10,6 +10,7 @@ enum GameSound: CaseIterable {
     case clearCombo
     case button
     case gameOver
+    case levelUp
 
     /// Each cue is a tiny melody of `(frequency in Hz, duration in seconds)`.
     var notes: [(frequency: Double, duration: Double)] {
@@ -28,6 +29,9 @@ enum GameSound: CaseIterable {
             return [(880, 0.05)]
         case .gameOver:
             return [(587.33, 0.14), (493.88, 0.14), (392.00, 0.26)]
+        case .levelUp:
+            return [(523.25, 0.09), (659.25, 0.09), (783.99, 0.09),
+                    (1046.50, 0.10), (1318.51, 0.24)]
         }
     }
 

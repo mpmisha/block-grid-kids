@@ -14,10 +14,29 @@ no pop-ups, no in-app purchases, no accounts and no internet connection**.
 - Pieces cannot be rotated — place them as they come.
 - Fill a full row or a full column and it clears, freeing up space.
 - Clear more than one line at once, or clear on consecutive moves, for bonus points.
+- Sweep **every** block off the board and you earn a **PERFECT!** — a burst of
+  confetti, a level-up and a brand new look for the whole game (see below).
 - When none of the three pieces fits anywhere, the game ends. Tap **Play Again**.
 
 The game auto-saves, so closing the app mid-game and coming back later resumes
 exactly where you were.
+
+## Levels and looks
+
+Emptying the board completely advances the level and re-skins the game. Four
+independent things change, each with four options:
+
+| Axis | Options |
+| --- | --- |
+| Block colors | Candy, Sunset, Ocean, Neon |
+| Board and background colors | Twilight, Grape, Forest, Ember |
+| Block texture | Candy gloss, brick, liquid, brushed metal |
+| Background pattern | Plain, dots, diagonal stripes, waves |
+
+That is 256 combinations. Every level-up picks a fresh one at random, always
+differing from the current look on at least two axes so the change is obvious.
+The look is saved with the game, and every new game starts from the familiar
+Candy/Twilight board.
 
 ## Settings
 
@@ -68,10 +87,11 @@ xcodebuild test -project BlockGridKids.xcodeproj -scheme BlockGridKids \
 ```
 BlockGridKids/
   Model/       Pure Swift game rules (Foundation only, no UIKit) — fully unit-tested
-               Board, ShapeTemplate/ShapeLibrary, ShapeGenerator, ScoringEngine, GameEngine
+               Board, ShapeTemplate/ShapeLibrary, ShapeGenerator, ScoringEngine,
+               GameEngine, SkinSelection
   Scene/       All rendering and UI, built entirely from SpriteKit nodes
                GameScene (layout + input), BoardNode, PieceNode, HUDNode, panels, effects
-  Support/     Theme, persistence, haptics, procedural sound, safe-area helpers
+  Support/     Theme, Skin catalog, persistence, haptics, procedural sound, safe-area helpers
   App/         SwiftUI entry point — a thin full-screen SpriteView host
 BlockGridKidsTests/   XCTest suite for the model layer
 Config/Info.plist     Launch-screen colour (merged with the generated Info.plist)
@@ -87,6 +107,9 @@ Two deliberate architecture choices:
    data in memory at runtime and hands it to `AVAudioPlayer`. The session uses
    the `.ambient` category so the game respects the ring switch and never
    interrupts music the phone is already playing.
+3. **No image assets ship either.** Blocks, empty cells and the background
+   gradient are all drawn with Core Graphics into cached `SKTexture`s, which is
+   what makes 256 different looks cost nothing but a repaint.
 
 ## Regenerating the app icon
 

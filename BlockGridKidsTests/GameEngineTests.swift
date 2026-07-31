@@ -204,8 +204,7 @@ final class GameEngineTests: XCTestCase {
         XCTAssertFalse(engine.restore(from: finishedSnapshot))
     }
 
-    func testGameEndsWhenNothingFits() {
-        let (engine, _) = makeEngine()
+    func testGameEndsWhenNothingFits() {        let (engine, _) = makeEngine()
         var safetyLimit = 400
 
         while !engine.isGameOver && safetyLimit > 0 {
@@ -225,5 +224,135 @@ final class GameEngineTests: XCTestCase {
         XCTAssertTrue(engine.isGameOver, "Expected the greedy run to reach a game over")
         XCTAssertFalse(engine.hasAvailableMove())
         XCTAssertGreaterThan(engine.score, 0)
+    }
+
+    // MARK: - Perfect clears
+
+    /// Builds a 5x5 game one move away from an empty board: the top row is
+    /// filled except for its first cell, and the tray holds a single 1x1.
+    private func makeEngineOneMoveFromAPerfectClear() -> GameEngine {
+        let (engine, _) = makeEngine(boardSize: 5)
+        var board = Board(size: 5)
+        for col in 1..<5 {
+            board[GridPosition(row: 0, col: col)] = 0
+        }
+        let single = Piece(
+            shape: ShapeTemplate(id: "test-single", cells: [(0, 0)], weight: 1),
+            colorIndex: 1
+        )
+        let snapshot = GameSnapshot(
+            board: board,
+            tray: [single, nil, nil],
+            score: 12,
+            streak: 0,
+            isGameOver: false
+        )
+        XCTAssertTrue(engine.restore(from: snapshot))
+        return engine
+    }
+
+    func testEmptyingTheBoardIsReportedAsAPerfectClear() {
+        let engine = makeEngineOneMoveFromAPerfectClear()
+        XCTAssertEqual(engine.level, 1)
+        let skinBefore = engine.skin
+
+        let result = engine.place(pieceAt: 0, origin: GridPosition(row: 0, col: 0))
+
+        XCTAssertEqual(result?.clearedRows, [0])
+        XCTAssertTrue(result?.isPerfectClear == true)
+        XCTAssertTrue(engine.board.isCompletelyEmpty)
+        XCTAssertEqual(engine.perfectClears, 1)
+        XCTAssertEqual(engine.level, 2)
+        XCTAssertEqual(result?.level, 2)
+        XCTAssertNotEqual(engine.skin, skinBefore, "A perfect clear must change the look")
+        XCTAssertGreaterThanOrEqual(engine.skin.differenceCount(from: skinBefore), 2)
+    }
+
+    func testClearingALineWithoutEmptyingTheBoardIsNotAPerfectClear() {
+        let (engine, _) = makeEngine(boardSize: 5)
+        var board = Board(size: 5)
+        for col in 1..<5 {
+            board[GridPosition(row: 0, col: col)] = 0
+        }
+        // One stray block survives the clear, so the board is not swept clean.
+        board[GridPosition(row: 3, col: 3)] = 2
+
+        let single = Piece(
+            shape: ShapeTemplate(id: "test-single", cells: [(0, 0)], weight: 1),
+            colorIndex: 1
+        )
+        XCTAssertTrue(engine.restore(from: GameSnapshot(
+            board: board,
+            tray: [single, nil, nil],
+            score: 12,
+            streak: 0,
+            isGameOver: false
+        )))
+
+        let result = engine.place(pieceAt: 0, origin: GridPosition(row: 0, col: 0))
+        XCTAssertTrue(result?.didClearLines == true)
+        XCTAssertFalse(result?.isPerfectClear == true)
+        XCTAssertEqual(engine.perfectClears, 0)
+        XCTAssertEqual(engine.level, 1)
+        XCTAssertEqual(engine.skin, .initial)
+    }
+
+    func testPlacingWithoutClearingNeverCountsAsAPerfectClear() {
+        let (engine, _) = makeEngine()
+        guard let piece = engine.piece(at: 0),
+              let origin = engine.board.firstValidOrigin(for: piece.shape) else {
+            return XCTFail("Expected a placeable piece")
+        }
+        // The board starts empty, so this guards the "empty board" check from
+        // firing on a placement that cleared nothing.
+        let result = engine.place(pieceAt: 0, origin: origin)
+        XCTAssertFalse(result?.isPerfectClear == true)
+        XCTAssertEqual(engine.perfectClears, 0)
+    }
+
+    func testLevelAndSkinSurviveASnapshotRoundTrip() throws {
+        let engine = makeEngineOneMoveFromAPerfectClear()
+        engine.place(pieceAt: 0, origin: GridPosition(row: 0, col: 0))
+        let earnedSkin = engine.skin
+
+        let data = try JSONEncoder().encode(engine.makeSnapshot())
+        let restored = try JSONDecoder().decode(GameSnapshot.self, from: data)
+
+        let (fresh, _) = makeEngine(boardSize: 5)
+        XCTAssertTrue(fresh.restore(from: restored))
+        XCTAssertEqual(fresh.skin, earnedSkin)
+        XCTAssertEqual(fresh.perfectClears, 1)
+        XCTAssertEqual(fresh.level, 2)
+    }
+
+    func testOldSavesWithoutASkinRestoreToTheStartingLook() {
+        let (engine, _) = makeEngine(boardSize: 5)
+        var board = Board(size: 5)
+        board[GridPosition(row: 2, col: 2)] = 3
+
+        let single = Piece(
+            shape: ShapeTemplate(id: "test-single", cells: [(0, 0)], weight: 1),
+            colorIndex: 1
+        )
+        XCTAssertTrue(engine.restore(from: GameSnapshot(
+            board: board,
+            tray: [single, nil, nil],
+            score: 5,
+            streak: 0,
+            isGameOver: false
+        )))
+        XCTAssertEqual(engine.skin, .initial)
+        XCTAssertEqual(engine.level, 1)
+    }
+
+    func testStartingANewGameReturnsToTheStartingLook() {
+        let engine = makeEngineOneMoveFromAPerfectClear()
+        engine.place(pieceAt: 0, origin: GridPosition(row: 0, col: 0))
+        XCTAssertNotEqual(engine.skin, .initial)
+
+        engine.startNewGame()
+        XCTAssertEqual(engine.skin, .initial)
+        XCTAssertEqual(engine.perfectClears, 0)
+        XCTAssertEqual(engine.level, 1)
     }
 }

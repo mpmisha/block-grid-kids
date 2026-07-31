@@ -112,4 +112,134 @@ enum Effects {
         if streak >= 3 { return "NICE!" }
         return nil
     }
+
+    // MARK: - Perfect clear
+
+    /// The reward for emptying the whole board: rings racing outward, a
+    /// confetti fountain and a big "PERFECT!" banner naming the new level.
+    ///
+    /// `center` and `boardSide` are in `parent`'s coordinate space.
+    static func perfectClearCelebration(at center: CGPoint,
+                                        boardSide: CGFloat,
+                                        level: Int,
+                                        in parent: SKNode) {
+        for index in 0..<3 {
+            let ring = SKShapeNode(circleOfRadius: boardSide * 0.16)
+            ring.fillColor = .clear
+            ring.strokeColor = Theme.crownGold
+            ring.lineWidth = max(3, boardSide * 0.016)
+            ring.position = center
+            ring.zPosition = Theme.Layer.effects + 2
+            ring.blendMode = .add
+            ring.alpha = 0
+            parent.addChild(ring)
+
+            ring.run(.sequence([
+                .wait(forDuration: Double(index) * 0.14),
+                .fadeAlpha(to: 0.9, duration: 0.06),
+                .group([
+                    .scale(to: 3.2, duration: 0.62),
+                    .fadeOut(withDuration: 0.62)
+                ]),
+                .removeFromParent()
+            ]))
+        }
+
+        // Fountain of confetti rising from the bottom of the board.
+        let colorCount = max(1, Theme.blockColors.count)
+        for index in 0..<26 {
+            let side = boardSide * CGFloat.random(in: 0.020...0.040)
+            let confetto = SKSpriteNode(
+                color: Theme.blockColor(index % colorCount),
+                size: CGSize(width: side, height: side * CGFloat.random(in: 0.7...1.5))
+            )
+            confetto.position = CGPoint(
+                x: center.x + CGFloat.random(in: -boardSide / 2...boardSide / 2),
+                y: center.y - boardSide * 0.45
+            )
+            confetto.zPosition = Theme.Layer.effects + 1
+            confetto.alpha = 0
+            parent.addChild(confetto)
+
+            let rise = boardSide * CGFloat.random(in: 0.55...1.05)
+            let drift = CGFloat.random(in: -boardSide * 0.18...boardSide * 0.18)
+            let duration = TimeInterval.random(in: 0.7...1.15)
+
+            confetto.run(.sequence([
+                .wait(forDuration: Double(index) * 0.012),
+                .fadeIn(withDuration: 0.06),
+                .group([
+                    .sequence([
+                        .moveBy(x: drift, y: rise, duration: duration * 0.55),
+                        .moveBy(x: drift * 0.4, y: -rise * 0.35, duration: duration * 0.45)
+                    ]),
+                    .rotate(byAngle: CGFloat.random(in: -6...6), duration: duration),
+                    .sequence([
+                        .wait(forDuration: duration * 0.55),
+                        .fadeOut(withDuration: duration * 0.45)
+                    ])
+                ]),
+                .removeFromParent()
+            ]))
+        }
+
+        let banner = SKNode()
+        banner.position = center
+        banner.zPosition = Theme.Layer.effects + 8
+        banner.setScale(0.3)
+        banner.alpha = 0
+        parent.addChild(banner)
+
+        let title = SKLabelNode(fontNamed: Theme.displayFont)
+        title.text = "PERFECT!"
+        title.fontSize = 46
+        title.fontColor = Theme.crownGold
+        title.verticalAlignmentMode = .center
+        title.horizontalAlignmentMode = .center
+        title.position = CGPoint(x: 0, y: 16)
+        banner.addChild(title)
+
+        let subtitle = SKLabelNode(fontNamed: Theme.bodyFont)
+        subtitle.text = "LEVEL \(level)"
+        subtitle.fontSize = 26
+        subtitle.fontColor = Theme.primaryText
+        subtitle.verticalAlignmentMode = .center
+        subtitle.horizontalAlignmentMode = .center
+        subtitle.position = CGPoint(x: 0, y: -22)
+        banner.addChild(subtitle)
+
+        banner.run(.sequence([
+            .group([
+                .fadeIn(withDuration: 0.16),
+                .sequence([
+                    .scale(to: 1.18, duration: 0.22),
+                    .scale(to: 1.0, duration: 0.12)
+                ])
+            ]),
+            .wait(forDuration: 0.90),
+            .group([
+                .fadeOut(withDuration: 0.34),
+                .moveBy(x: 0, y: 34, duration: 0.34),
+                .scale(to: 0.9, duration: 0.34)
+            ]),
+            .removeFromParent()
+        ]))
+    }
+
+    /// A full-screen wash used to hide the moment the skin swaps.
+    static func skinChangeFlash(size: CGSize, in parent: SKNode, onPeak: @escaping () -> Void) {
+        let flash = SKSpriteNode(color: .white, size: size)
+        flash.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        flash.zPosition = Theme.Layer.effects + 20
+        flash.alpha = 0
+        flash.blendMode = .add
+        parent.addChild(flash)
+
+        flash.run(.sequence([
+            .fadeAlpha(to: 0.55, duration: 0.16),
+            .run(onPeak),
+            .fadeOut(withDuration: 0.42),
+            .removeFromParent()
+        ]))
+    }
 }

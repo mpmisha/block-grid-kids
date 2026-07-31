@@ -37,6 +37,11 @@ final class PieceNode: SKNode {
         }
     }
 
+    /// Repaints every block with the current skin.
+    func refreshSkin() {
+        blockNodes.forEach { $0.refreshSkin() }
+    }
+
     // MARK: - Geometry
 
     var columnCount: Int { piece.shape.width }

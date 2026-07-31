@@ -16,6 +16,11 @@ final class BlockNode: SKSpriteNode {
         fatalError("init(coder:) is not supported")
     }
 
+    /// Repaints with the current skin, keeping the block's color slot.
+    func refreshSkin() {
+        texture = BlockTextureCache.shared.filledTexture(colorIndex: colorIndex)
+    }
+
     /// A quick squash-and-stretch used when a block lands on the board.
     func playLandingBounce(delay: TimeInterval = 0) {
         setScale(0.72)

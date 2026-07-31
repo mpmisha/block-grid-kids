@@ -12,6 +12,11 @@ struct PlacementResult: Equatable {
     var didRefillTray = false
     var isNewBestScore = false
     var isGameOver = false
+    /// The placement swept the very last block off the board.
+    var isPerfectClear = false
+    /// Level reached after this placement. Starts at `1` and goes up with
+    /// every perfect clear.
+    var level: Int = 1
 
     var clearedLineCount: Int { clearedRows.count + clearedColumns.count }
     var didClearLines: Bool { clearedLineCount > 0 }
@@ -27,6 +32,12 @@ struct GameSnapshot: Codable, Equatable {
     /// The best score as it was when this run started. Persisted so the frozen
     /// HUD value survives the app being closed mid-game.
     var baselineBestScore: Int?
+    /// How many times the board has been swept completely clean this run.
+    /// Optional so saves written before levels existed still decode.
+    var perfectClears: Int?
+    /// The look the run is currently wearing, so a resumed game does not snap
+    /// back to the starting skin.
+    var skin: SkinSelection?
 }
 
 /// Owns the board, the tray, the score and the game-over rule.
@@ -37,6 +48,16 @@ final class GameEngine {
     private(set) var score = 0
     private(set) var streak = 0
     private(set) var isGameOver = false
+
+    /// Number of times the player has emptied the board this run. Each one
+    /// earns a new look.
+    private(set) var perfectClears = 0
+    /// What the player is shown as their level: the first board is level 1.
+    var level: Int { perfectClears + 1 }
+
+    /// The look the run is wearing. Advanced on every perfect clear and reset
+    /// with every new game, so each run starts from the same familiar board.
+    private(set) var skin: SkinSelection = .initial
 
     /// The all-time best actually stored on the device.
     private(set) var bestScore = 0
@@ -85,6 +106,8 @@ final class GameEngine {
         score = 0
         streak = 0
         isGameOver = false
+        perfectClears = 0
+        skin = .initial
         baselineBestScore = bestScore
         refillTray()
     }
@@ -147,6 +170,15 @@ final class GameEngine {
         }
         result.streak = streak
 
+        // A perfect clear can only happen on a placement that cleared lines,
+        // and the board must be empty once those lines are gone.
+        if result.didClearLines && board.filledCellCount == 0 {
+            result.isPerfectClear = true
+            perfectClears += 1
+            skin = skin.next()
+        }
+        result.level = level
+
         result.breakdown = ScoringEngine.breakdown(
             cellCount: piece.cellCount,
             lineCount: result.clearedLineCount,
@@ -193,7 +225,9 @@ final class GameEngine {
             score: score,
             streak: streak,
             isGameOver: isGameOver,
-            baselineBestScore: baselineBestScore
+            baselineBestScore: baselineBestScore,
+            perfectClears: perfectClears,
+            skin: skin
         )
     }
 
@@ -214,6 +248,8 @@ final class GameEngine {
         // Keep the frozen target from the interrupted run, clamped so a stale
         // save can never show a target above the real stored best.
         baselineBestScore = min(bestScore, max(0, snapshot.baselineBestScore ?? bestScore))
+        perfectClears = max(0, snapshot.perfectClears ?? 0)
+        skin = snapshot.skin ?? .initial
 
         if remainingPieces.isEmpty {
             refillTray()

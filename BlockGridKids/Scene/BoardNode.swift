@@ -110,6 +110,17 @@ final class BoardNode: SKNode {
         }
     }
 
+    // MARK: - Skin
+
+    /// Repaints the backdrop, the empty cells and every block on the board for
+    /// the skin that is now active.
+    func applySkin() {
+        rebuildStaticParts()
+        for case let block as BlockNode in blockLayer.children {
+            block.refreshSkin()
+        }
+    }
+
     // MARK: - Blocks
 
     @discardableResult

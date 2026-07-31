@@ -6,32 +6,28 @@ import UIKit
 enum Theme {
 
     // MARK: - Palette
+    //
+    // The colors below come from the active skin, which changes every time the
+    // player clears the whole board. Everything else in this file is fixed
+    // chrome that must stay legible no matter which skin is on.
 
-    /// The eight block colors. Bright, saturated and easy to tell apart.
-    static let blockColors: [UIColor] = [
-        UIColor(red: 0.60, green: 0.40, blue: 0.93, alpha: 1),   // purple
-        UIColor(red: 0.32, green: 0.79, blue: 0.40, alpha: 1),   // green
-        UIColor(red: 0.98, green: 0.60, blue: 0.20, alpha: 1),   // orange
-        UIColor(red: 0.26, green: 0.62, blue: 0.97, alpha: 1),   // blue
-        UIColor(red: 0.97, green: 0.40, blue: 0.65, alpha: 1),   // pink
-        UIColor(red: 0.99, green: 0.83, blue: 0.25, alpha: 1),   // yellow
-        UIColor(red: 0.25, green: 0.82, blue: 0.82, alpha: 1),   // cyan
-        UIColor(red: 0.95, green: 0.36, blue: 0.36, alpha: 1)    // red
-    ]
+    /// The eight block colors of the current skin.
+    static var blockColors: [UIColor] { SkinCatalog.blockPalette.colors }
 
     static func blockColor(_ index: Int) -> UIColor {
-        guard !blockColors.isEmpty else { return .systemPurple }
-        let safeIndex = ((index % blockColors.count) + blockColors.count) % blockColors.count
-        return blockColors[safeIndex]
+        let colors = blockColors
+        guard !colors.isEmpty else { return .systemPurple }
+        let safeIndex = ((index % colors.count) + colors.count) % colors.count
+        return colors[safeIndex]
     }
 
     // MARK: - Surfaces
 
-    static let backgroundTop = UIColor(red: 0.36, green: 0.47, blue: 0.86, alpha: 1)
-    static let backgroundBottom = UIColor(red: 0.22, green: 0.26, blue: 0.60, alpha: 1)
+    static var backgroundTop: UIColor { SkinCatalog.surfacePalette.backgroundTop }
+    static var backgroundBottom: UIColor { SkinCatalog.surfacePalette.backgroundBottom }
 
-    static let boardBackground = UIColor(red: 0.16, green: 0.18, blue: 0.32, alpha: 0.55)
-    static let emptyCell = UIColor(red: 0.20, green: 0.22, blue: 0.36, alpha: 0.95)
+    static var boardBackground: UIColor { SkinCatalog.surfacePalette.boardBackground }
+    static var emptyCell: UIColor { SkinCatalog.surfacePalette.emptyCell }
     static let emptyCellStroke = UIColor(white: 1.0, alpha: 0.06)
 
     static let ghostFill = UIColor(white: 1.0, alpha: 0.22)

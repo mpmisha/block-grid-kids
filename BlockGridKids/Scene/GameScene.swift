@@ -65,6 +65,9 @@ final class GameScene: SKScene {
         addChild(hud)
 
         restoreSavedGameIfPossible()
+        SkinCatalog.apply(engine.skin)
+        BlockTextureCache.shared.invalidateForSkinChange()
+        backgroundColor = Theme.backgroundBottom
         performLayout(force: true)
         observeAppLifecycle()
     }
@@ -481,6 +484,10 @@ final class GameScene: SKScene {
             animateClears(result)
         }
 
+        if result.isPerfectClear {
+            celebratePerfectClear(level: result.level)
+        }
+
         if result.didRefillTray {
             let delay = result.didClearLines ? 0.32 : 0.16
             run(.sequence([
@@ -533,6 +540,48 @@ final class GameScene: SKScene {
                 in: effectLayer
             )
         }
+    }
+
+    // MARK: - Perfect clear
+
+    /// Board swept completely clean: celebrate, then re-skin the whole game so
+    /// the next board feels like a new level.
+    private func celebratePerfectClear(level: Int) {
+        let center = boardNode.position
+        let boardSide = boardNode.boardSide
+
+        run(.sequence([
+            // Let the line-clear pops finish before the fanfare starts.
+            .wait(forDuration: 0.34),
+            .run { [weak self] in
+                guard let self else { return }
+                Haptics.clearLines()
+                SoundPlayer.shared.play(.levelUp)
+                Effects.perfectClearCelebration(
+                    at: center,
+                    boardSide: boardSide,
+                    level: level,
+                    in: self.effectLayer
+                )
+                Effects.skinChangeFlash(size: self.size, in: self.effectLayer) { [weak self] in
+                    guard let self else { return }
+                    self.applySkin(self.engine.skin)
+                }
+            }
+        ]))
+    }
+
+    /// Swaps every skinned surface over to `selection`. Cheap enough to run
+    /// inside an animation because the only real work is repainting a handful
+    /// of cached textures.
+    private func applySkin(_ selection: SkinSelection) {
+        guard SkinCatalog.apply(selection) else { return }
+        BlockTextureCache.shared.invalidateForSkinChange()
+        backgroundColor = Theme.backgroundBottom
+        background.applySkin()
+        boardNode.applySkin()
+        for node in trayPieceNodes.values { node.refreshSkin() }
+        drag?.pieceNode.refreshSkin()
     }
 
     // MARK: - Overlays
@@ -627,6 +676,7 @@ final class GameScene: SKScene {
         engine.startNewGame()
         stateStore.clear()
         isPresentingGameOver = false
+        applySkin(engine.skin)
         boardNode.cancelGameOverSweep()
         boardNode.removeAllBlocks()
         boardNode.hideGhost()
@@ -643,6 +693,7 @@ final class GameScene: SKScene {
         SettingsStore.shared.boardSize = newSize
         stateStore.clear()
         isPresentingGameOver = false
+        applySkin(engine.skin)
         boardNode.cancelGameOverSweep()
         performLayout(force: true)
         rebuildTray(animated: true)
