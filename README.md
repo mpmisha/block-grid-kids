@@ -8,6 +8,31 @@ no pop-ups, no in-app purchases, no accounts and no internet connection**.
   <img src="BlockGridKids/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" width="120" alt="App icon">
 </p>
 
+## Screenshots
+
+### Gameplay and celebrations
+
+<p align="center">
+  <img src="docs/screenshots/gameplay.png" width="30%" alt="Block Grid gameplay on an 8x8 board">
+  <img src="docs/screenshots/almost-full.png" width="30%" alt="An almost full Block Grid board">
+  <img src="docs/screenshots/perfect-clear.png" width="30%" alt="Confetti and a PERFECT banner after clearing the board">
+</p>
+
+### Themes earned after a perfect clear
+
+<p align="center">
+  <img src="docs/screenshots/theme-sunset.png" width="30%" alt="Sunset and Grape theme with brick blocks and dots">
+  <img src="docs/screenshots/theme-ocean.png" width="30%" alt="Ocean and Forest theme with liquid blocks and waves">
+  <img src="docs/screenshots/theme-neon.png" width="30%" alt="Neon and Ember theme with metal blocks and stripes">
+</p>
+
+### Game options
+
+<p align="center">
+  <img src="docs/screenshots/settings.png" width="30%" alt="Block Grid settings">
+  <img src="docs/screenshots/board-5x5.png" width="30%" alt="Block Grid on the easier 5x5 board">
+</p>
+
 ## How to play
 
 - Three pieces sit in the tray under the board. Drag one onto the 8×8 grid.
