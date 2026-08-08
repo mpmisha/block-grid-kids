@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#20264f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Block Grid">
+  <title>Block Grid</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Probe used to read safe-area insets as numbers for canvas layout. -->
+  <div id="safe-probe" aria-hidden="true"></div>
+
+  <canvas id="game"></canvas>
+
+  <header id="hud">
+    <div class="best-badge" id="best-badge">
+      <span class="crown">👑</span>
+      <span class="best-value" id="hud-best">0</span>
+    </div>
+    <div class="score" id="hud-score">0</div>
+    <button class="gear" id="gear" aria-label="Settings">⚙︎</button>
+  </header>
+
+  <!-- Settings overlay -->
+  <div class="overlay" id="settings-overlay" hidden>
+    <div class="scrim" data-dismiss="settings"></div>
+    <div class="panel" role="dialog" aria-label="Settings">
+      <h2>Settings</h2>
+      <p class="panel-best" id="settings-best">Best score: 0</p>
+
+      <div class="row">
+        <span class="row-label">Board</span>
+        <div class="segmented" id="board-size-seg">
+          <button data-size="5">5x5</button>
+          <button data-size="8">8x8</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="row-label">Sound</span>
+        <button class="toggle" id="toggle-sound" role="switch"><span class="knob"></span></button>
+      </div>
+
+      <div class="row">
+        <span class="row-label">Vibration</span>
+        <button class="toggle" id="toggle-haptics" role="switch"><span class="knob"></span></button>
+      </div>
+
+      <button class="btn primary" id="btn-new-game">New Game</button>
+      <button class="btn danger" id="btn-reset-best">Reset Best Score</button>
+      <button class="btn secondary" id="btn-close">Close</button>
+    </div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div class="overlay" id="gameover-overlay" hidden>
+    <div class="scrim"></div>
+    <div class="panel gameover" role="dialog" aria-label="Game over">
+      <div class="go-emoji" id="go-emoji">🧩</div>
+      <h2 id="go-title">No More Moves</h2>
+      <p class="go-caption">Your score</p>
+      <div class="go-score" id="go-score">0</div>
+      <p class="go-best" id="go-best">👑 Best: 0</p>
+      <button class="btn primary" id="btn-play-again">Play Again</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
