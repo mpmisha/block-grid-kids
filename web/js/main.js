@@ -116,10 +116,21 @@ const HUB_URL = (() => {
   return 'https://mpmisha.github.io/playground/';
 })();
 const backHubBtn = $('btn-back-hub');
+const embeddedInHub = window.self !== window.top;
 backHubBtn.href = HUB_URL;
 backHubBtn.hidden = false;
-backHubBtn.addEventListener('click', () => {
+backHubBtn.addEventListener('click', (e) => {
   scene.sound.play('button');
+  // When embedded in the hub's in-app player, ask the hub to close us instead
+  // of navigating the iframe (which would nest the hub inside the game frame).
+  if (embeddedInHub) {
+    e.preventDefault();
+    try {
+      window.parent.postMessage({ type: 'playground:back' }, new URL(HUB_URL).origin);
+    } catch {
+      window.parent.postMessage({ type: 'playground:back' }, '*');
+    }
+  }
 });
 
 settingsOverlay.querySelector('[data-dismiss="settings"]').addEventListener('click', closeSettings);
