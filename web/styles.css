@@ -11,6 +11,9 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* The hidden attribute must win over explicit display (rows, buttons). */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;

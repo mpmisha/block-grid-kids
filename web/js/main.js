@@ -118,7 +118,16 @@ const HUB_URL = (() => {
 const backHubBtn = $('btn-back-hub');
 const embeddedInHub = window.self !== window.top;
 backHubBtn.href = HUB_URL;
-backHubBtn.hidden = false;
+// Sound/Vibration are global now — controlled from the hub. When embedded, hide
+// those rows and the redundant in-panel Back button (the hub's player bar does
+// the going-back). Board size stays here; it's specific to this game.
+if (embeddedInHub) {
+  toggleSound.closest('.row').hidden = true;
+  toggleHaptics.closest('.row').hidden = true;
+  backHubBtn.hidden = true;
+} else {
+  backHubBtn.hidden = false;
+}
 backHubBtn.addEventListener('click', (e) => {
   scene.sound.play('button');
   // When embedded in the hub's in-app player, ask the hub to close us instead
