@@ -204,6 +204,8 @@ html, body {
   font-weight: 700;
   color: #fff;
   cursor: pointer;
+  text-align: center;
+  text-decoration: none;
 }
 .btn:active { transform: scale(0.97); }
 .btn.primary { background: var(--primary); }

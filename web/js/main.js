@@ -108,6 +108,20 @@ $('btn-close').addEventListener('click', () => {
   closeSettings();
 });
 
+// ---- Back to hub ----
+// The hub can pass ?hub=<url>; otherwise fall back to the known hub site.
+const HUB_URL = (() => {
+  const param = new URLSearchParams(location.search).get('hub');
+  if (param) { try { return new URL(param, location.href).href; } catch { /* ignore */ } }
+  return 'https://mpmisha.github.io/playground/';
+})();
+const backHubBtn = $('btn-back-hub');
+backHubBtn.href = HUB_URL;
+backHubBtn.hidden = false;
+backHubBtn.addEventListener('click', () => {
+  scene.sound.play('button');
+});
+
 settingsOverlay.querySelector('[data-dismiss="settings"]').addEventListener('click', closeSettings);
 
 // ---- Game over overlay ----
