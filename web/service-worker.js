@@ -1,6 +1,6 @@
 // Offline-first service worker. Caches the whole app shell so Block Grid runs
 // with no network at all once installed to the home screen.
-const CACHE = 'block-grid-v4';
+const CACHE = 'block-grid-v5';
 
 const ASSETS = [
   './',
@@ -19,6 +19,7 @@ const ASSETS = [
   './js/textures.js',
   './js/audio.js',
   './js/storage.js',
+  './js/i18n.js',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -45,6 +46,18 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   if (url.origin === location.origin) {
+    // Network-first for navigations so installed users pick up new shells
+    // (falls back to the cached page offline).
+    if (request.mode === 'navigate') {
+      event.respondWith(
+        fetch(request).then((resp) => {
+          const copy = resp.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
+          return resp;
+        }).catch(() => caches.match(request).then((c) => c || caches.match('./index.html'))),
+      );
+      return;
+    }
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request).then((resp) => {
         const copy = resp.clone();

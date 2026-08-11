@@ -2,8 +2,23 @@
 import { GameScene } from './scene.js';
 import { SettingsStore } from './storage.js';
 import { Board } from './board.js';
+import { I18n } from './i18n.js';
+
+// Resolve + apply the platform language before anything renders.
+I18n.init();
 
 const $ = (id) => document.getElementById(id);
+
+// Apply all static (non-dynamic) strings from the active locale. Dynamic ones
+// (best score, game-over title) are set where they render.
+function applyStaticTranslations() {
+  for (const el of document.querySelectorAll('[data-i18n]')) {
+    el.textContent = I18n.t(el.getAttribute('data-i18n'));
+  }
+  for (const el of document.querySelectorAll('[data-i18n-aria]')) {
+    el.setAttribute('aria-label', I18n.t(el.getAttribute('data-i18n-aria')));
+  }
+}
 
 const canvas = $('game');
 
@@ -17,6 +32,11 @@ const dom = {
 };
 
 const scene = new GameScene(canvas, dom);
+
+// Optional end-to-end test hook (only when explicitly requested via ?e2e=1).
+if (new URLSearchParams(location.search).get('e2e') === '1') {
+  window.__scene = scene;
+}
 
 // Gear button.
 $('gear').addEventListener('click', () => {
@@ -37,7 +57,7 @@ let resetArmed = false;
 let resetTimer = null;
 
 function syncSettingsUi() {
-  settingsBest.textContent = `Best score: ${scene.engine.visibleBestScore}`;
+  settingsBest.textContent = I18n.t('bestScoreLabel', { n: scene.engine.visibleBestScore });
   for (const btn of boardSeg.querySelectorAll('button')) {
     btn.classList.toggle('active', Number(btn.dataset.size) === scene.engine.boardSize);
   }
@@ -49,7 +69,7 @@ function syncSettingsUi() {
 function disarmReset() {
   resetArmed = false;
   if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
-  resetBtn.textContent = 'Reset Best Score';
+  resetBtn.textContent = I18n.t('resetBest');
 }
 
 function openSettings() {
@@ -94,13 +114,13 @@ resetBtn.addEventListener('click', () => {
   scene.sound.play('button');
   if (!resetArmed) {
     resetArmed = true;
-    resetBtn.textContent = 'Tap again to confirm';
+    resetBtn.textContent = I18n.t('resetConfirm');
     resetTimer = setTimeout(disarmReset, 3000);
     return;
   }
   disarmReset();
   scene.resetBestScore();
-  settingsBest.textContent = 'Best score: 0';
+  settingsBest.textContent = I18n.t('bestScoreLabel', { n: 0 });
 });
 
 $('btn-close').addEventListener('click', () => {
@@ -150,9 +170,9 @@ const gameoverOverlay = $('gameover-overlay');
 
 function openGameOver({ score, bestScore, isNewBest }) {
   $('go-emoji').textContent = isNewBest ? '🎉' : '🧩';
-  $('go-title').textContent = isNewBest ? 'New Best!' : 'No More Moves';
+  $('go-title').textContent = isNewBest ? I18n.t('newBest') : I18n.t('noMoreMoves');
   $('go-score').textContent = String(score);
-  $('go-best').textContent = `👑 Best: ${bestScore}`;
+  $('go-best').textContent = `👑 ${I18n.t('bestBadge', { n: bestScore })}`;
   gameoverOverlay.hidden = false;
 }
 
@@ -163,9 +183,33 @@ $('btn-play-again').addEventListener('click', () => {
   scene.startNewGame();
 });
 
+// ---- Localization ----
+// Apply the resolved locale now, and re-apply live when the hub switches it
+// (I18n dispatches to onChange after updating <html lang/dir>).
+applyStaticTranslations();
+I18n.onChange(() => {
+  applyStaticTranslations();
+  // Refresh any dynamic strings currently on screen.
+  if (!settingsOverlay.hidden) syncSettingsUi();
+  if (!gameoverOverlay.hidden) {
+    openGameOver({
+      score: scene.engine.score,
+      bestScore: scene.engine.bestScore,
+      isNewBest: $('go-emoji').textContent === '🎉',
+    });
+  }
+});
+
 // ---- Service worker (offline support) ----
 
 if ('serviceWorker' in navigator) {
+  // Auto-reload once when a new SW takes control so installed users get updates.
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js').catch(() => {});
   });

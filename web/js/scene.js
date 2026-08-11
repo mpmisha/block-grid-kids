@@ -7,9 +7,14 @@ import { css, adjustBrightness, lightened } from './color.js';
 import { BlockTextureCache, makeBackgroundCanvas, roundRect } from './textures.js';
 import { SoundPlayer, Haptics } from './audio.js';
 import { SettingsStore, GameStateStore } from './storage.js';
+import { I18n } from './i18n.js';
 
 const BLOCK_CORNER_RADIUS_RATIO = 0.16;
 const CROWN_GOLD = 'rgba(255, 204, 61, 1)';
+const CANVAS_FONT_EN = '"Baloo 2", system-ui, sans-serif';
+const CANVAS_FONT_HE = '"Fredoka", "Baloo 2", system-ui, sans-serif';
+// Hebrew has no Baloo 2 glyphs — swap in a rounded Hebrew-capable family.
+const canvasFamily = () => (I18n.isRTL ? CANVAS_FONT_HE : CANVAS_FONT_EN);
 const GAME_OVER_BLOCK = { r: 0.36, g: 0.38, b: 0.50, a: 1 };
 
 const HUD_HEIGHT = 76;
@@ -344,11 +349,11 @@ export class GameScene {
   }
 
   praiseText(lineCount, streak) {
-    if (lineCount >= 4) return 'AMAZING!';
-    if (lineCount === 3) return 'SUPER!';
-    if (lineCount === 2) return 'GREAT!';
-    if (streak >= 5) return 'ON FIRE!';
-    if (streak >= 3) return 'NICE!';
+    if (lineCount >= 4) return I18n.t('praiseAmazing');
+    if (lineCount === 3) return I18n.t('praiseSuper');
+    if (lineCount === 2) return I18n.t('praiseGreat');
+    if (streak >= 5) return I18n.t('praiseOnFire');
+    if (streak >= 3) return I18n.t('praiseNice');
     return null;
   }
 
@@ -411,7 +416,7 @@ export class GameScene {
     };
 
     if (!animateBoard) { showPanel(); return; }
-    this.praise('No Moves Left', this.width / 2, this.boardY + this.boardSide / 2);
+    this.praise(I18n.t('noMovesLeft'), this.width / 2, this.boardY + this.boardSide / 2);
     this.gameOverSweep = { start: performance.now() / 1000, onDone: showPanel, fired: false };
   }
 
@@ -477,7 +482,7 @@ export class GameScene {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.fillStyle = color;
-      ctx.font = `900 ${30 * scale}px "Baloo 2", system-ui, sans-serif`;
+      ctx.font = `900 ${30 * scale}px ${canvasFamily()}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(`+${amount}`, x, y - dy);
@@ -500,7 +505,7 @@ export class GameScene {
       ctx.save();
       ctx.globalAlpha = clamp01(alpha);
       ctx.fillStyle = CROWN_GOLD;
-      ctx.font = `900 ${34 * scale}px "Baloo 2", system-ui, sans-serif`;
+      ctx.font = `900 ${34 * scale}px ${canvasFamily()}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(text, x, y - dy);
@@ -667,11 +672,11 @@ export class GameScene {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = CROWN_GOLD;
-      ctx.font = '900 46px "Baloo 2", system-ui, sans-serif';
-      ctx.fillText('PERFECT!', 0, -16);
+      ctx.font = `900 46px ${canvasFamily()}`;
+      ctx.fillText(I18n.t('perfect'), 0, -16);
       ctx.fillStyle = 'white';
-      ctx.font = '800 26px "Baloo 2", system-ui, sans-serif';
-      ctx.fillText(`LEVEL ${level}`, 0, 22);
+      ctx.font = `800 26px ${canvasFamily()}`;
+      ctx.fillText(I18n.t('level', { n: level }), 0, 22);
       ctx.restore();
       return true;
     });

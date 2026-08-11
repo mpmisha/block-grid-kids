@@ -227,3 +227,40 @@ html, body {
   from { opacity: 0; transform: translateY(24px) scale(0.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ---- Internationalization (English LTR / Hebrew RTL) ---- */
+
+/* Hebrew-capable rounded font — Baloo 2 has no Hebrew glyphs. */
+:root[lang="he"],
+:root[dir="rtl"] {
+  font-family: "Fredoka", "Baloo 2", system-ui, -apple-system, sans-serif;
+}
+:root[lang="he"] body,
+:root[dir="rtl"] body {
+  font-family: "Fredoka", "Baloo 2", system-ui, -apple-system, sans-serif;
+}
+
+/* Mirror pinned HUD chrome: badge (start) and gear (end) swap sides in RTL. */
+[dir="rtl"] .best-badge {
+  left: auto;
+  right: 20px;
+}
+[dir="rtl"] .gear {
+  right: auto;
+  left: 16px;
+}
+
+/* Toggle knob travels from the opposite side in RTL. */
+[dir="rtl"] .toggle .knob {
+  left: auto;
+  right: 3px;
+}
+[dir="rtl"] .toggle.on .knob {
+  right: 27px;
+}
+
+/* Back-to-Games arrow points the correct way (→) in RTL. */
+[dir="rtl"] .back-arrow {
+  display: inline-block;
+  transform: scaleX(-1);
+}

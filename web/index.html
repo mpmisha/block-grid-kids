@@ -15,6 +15,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Hebrew-capable rounded font (Baloo 2 has no Hebrew glyphs). -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -29,18 +31,18 @@
       <span class="best-value" id="hud-best">0</span>
     </div>
     <div class="score" id="hud-score">0</div>
-    <button class="gear" id="gear" aria-label="Settings">⚙︎</button>
+    <button class="gear" id="gear" data-i18n-aria="settings" aria-label="Settings">⚙︎</button>
   </header>
 
   <!-- Settings overlay -->
   <div class="overlay" id="settings-overlay" hidden>
     <div class="scrim" data-dismiss="settings"></div>
     <div class="panel" role="dialog" aria-label="Settings">
-      <h2>Settings</h2>
+      <h2 data-i18n="settings">Settings</h2>
       <p class="panel-best" id="settings-best">Best score: 0</p>
 
       <div class="row">
-        <span class="row-label">Board</span>
+        <span class="row-label" data-i18n="board">Board</span>
         <div class="segmented" id="board-size-seg">
           <button data-size="5">5x5</button>
           <button data-size="8">8x8</button>
@@ -48,19 +50,19 @@
       </div>
 
       <div class="row">
-        <span class="row-label">Sound</span>
+        <span class="row-label" data-i18n="sound">Sound</span>
         <button class="toggle" id="toggle-sound" role="switch"><span class="knob"></span></button>
       </div>
 
       <div class="row">
-        <span class="row-label">Vibration</span>
+        <span class="row-label" data-i18n="vibration">Vibration</span>
         <button class="toggle" id="toggle-haptics" role="switch"><span class="knob"></span></button>
       </div>
 
-      <button class="btn primary" id="btn-new-game">New Game</button>
-      <button class="btn danger" id="btn-reset-best">Reset Best Score</button>
-      <a class="btn secondary" id="btn-back-hub" hidden>← Back to Games</a>
-      <button class="btn secondary" id="btn-close">Close</button>
+      <button class="btn primary" id="btn-new-game" data-i18n="newGame">New Game</button>
+      <button class="btn danger" id="btn-reset-best" data-i18n="resetBest">Reset Best Score</button>
+      <a class="btn secondary" id="btn-back-hub" hidden><span class="back-arrow" aria-hidden="true">←</span> <span class="back-label" data-i18n="backToGames">Back to Games</span></a>
+      <button class="btn secondary" id="btn-close" data-i18n="close">Close</button>
     </div>
   </div>
 
@@ -70,10 +72,10 @@
     <div class="panel gameover" role="dialog" aria-label="Game over">
       <div class="go-emoji" id="go-emoji">🧩</div>
       <h2 id="go-title">No More Moves</h2>
-      <p class="go-caption">Your score</p>
+      <p class="go-caption" id="go-caption" data-i18n="yourScore">Your score</p>
       <div class="go-score" id="go-score">0</div>
       <p class="go-best" id="go-best">👑 Best: 0</p>
-      <button class="btn primary" id="btn-play-again">Play Again</button>
+      <button class="btn primary" id="btn-play-again" data-i18n="playAgain">Play Again</button>
     </div>
   </div>
 
