@@ -116,12 +116,22 @@ function durationBucket(ms) {
 const R = role();
 const started = Date.now();
 
-track(R === 'hub' ? 'hub_open' : 'game_open', {
-  game: R,
-  lang: lang(),
-  embedded: (window.parent !== window) ? 'yes' : 'no',
-  display: displayMode(),
-});
+// Fire the open event AFTER the app has resolved & applied the platform
+// language. i18n sets <html lang/dir> during main.js's synchronous top-level
+// module eval, which runs *after* this module is imported — so reading lang()
+// right here would capture the static <html lang="en"> and mis-report every
+// session as 'en'. A microtask defer lets the language apply first, so we log
+// the language the user actually sees (e.g. the Hebrew default).
+function fireOpen() {
+  track(R === 'hub' ? 'hub_open' : 'game_open', {
+    game: R,
+    lang: lang(),
+    embedded: (window.parent !== window) ? 'yes' : 'no',
+    display: displayMode(),
+  });
+}
+if (typeof queueMicrotask === 'function') queueMicrotask(fireOpen);
+else Promise.resolve().then(fireOpen);
 
 let ended = false;
 function sessionEnd() {
