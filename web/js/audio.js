@@ -19,6 +19,7 @@ class SoundPlayer {
   constructor(settings) {
     this.settings = settings;
     this.ctx = null;
+    this.primed = false;
   }
 
   // Must be called from a user gesture to satisfy autoplay policies.
@@ -27,6 +28,23 @@ class SoundPlayer {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       this.ctx = new AC();
+    }
+    // iOS requires an audio node to actually START inside the user gesture —
+    // calling resume() alone leaves the context silent until the first node is
+    // started within a gesture. Games unlock() from touchstart/pointerdown, but
+    // the first real cue is scheduled later in the render loop (not a gesture),
+    // so nothing was audible until the user tapped a real <button> (the gear).
+    // Priming one silent buffer here, synchronously, fully unlocks audio on the
+    // very first gameplay gesture.
+    if (!this.primed) {
+      try {
+        const buffer = this.ctx.createBuffer(1, 1, 22050);
+        const source = this.ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.ctx.destination);
+        source.start(0);
+        this.primed = true;
+      } catch (e) { /* ignore — best-effort priming */ }
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
   }
