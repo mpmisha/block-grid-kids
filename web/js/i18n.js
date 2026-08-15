@@ -74,9 +74,8 @@ function detect() {
   for (const raw of list) {
     const code = String(raw).toLowerCase();
     if (code.startsWith('he') || code.startsWith('iw')) return 'he';
-    if (code.startsWith('en')) return 'en';
   }
-  return 'en';
+  return 'he';
 }
 
 // Resolution order: (1) URL ?lang= if valid; (2) localStorage; (3) auto-detect.
