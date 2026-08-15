@@ -1,3 +1,4 @@
+import './telemetry.js';
 // Entry point: wires the DOM HUD/overlays to the canvas GameScene.
 import { GameScene } from './scene.js';
 import { SettingsStore } from './storage.js';

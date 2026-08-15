@@ -1,6 +1,6 @@
 // Offline-first service worker. Caches the whole app shell so Block Grid runs
 // with no network at all once installed to the home screen.
-const CACHE = 'block-grid-v6';
+const CACHE = 'block-grid-v7';
 
 const ASSETS = [
   './',
@@ -20,6 +20,7 @@ const ASSETS = [
   './js/audio.js',
   './js/storage.js',
   './js/i18n.js',
+  './js/telemetry.js',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
